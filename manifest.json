@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "Speed Controller",
+    "version": "1.2",
+    "description": "Set default video playback speed and customize for specific sites.",
+    "permissions": ["activeTab", "scripting", "storage"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ],
+    "options_page": "options.html",
+    "commands": {
+      "set_speed_100": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+1"
+        },
+        "description": "Set playback speed to 100%"
+      },
+      "set_speed_135": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+2"
+        },
+        "description": "Set playback speed to 135%"
+      },
+      "set_speed_200": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+3"
+        },
+        "description": "Set playback speed to 200%"
+      },
+      "set_speed_250": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+4"
+        },
+        "description": "Set playback speed to 250%"
+      }
+    }
+  }
+  

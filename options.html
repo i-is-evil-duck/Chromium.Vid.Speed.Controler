@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Speed Controller</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 500px;
+      background-color: #1e1e1e;
+      color: #ffffff;
+    }
+    h1, h2 {
+      color: #ffffff;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      color: #cccccc;
+    }
+    input[type="text"], input[type="number"] {
+      width: calc(100% - 20px);
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #444444;
+      border-radius: 4px;
+      background-color: #333333;
+      color: #ffffff;
+    }
+    button {
+      padding: 8px 12px;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .domain-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .domain-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background-color: #333333;
+      margin-bottom: 8px;
+      border-radius: 4px;
+    }
+    .edit-button, .delete-button {
+      background-color: #4caf50;
+      color: white;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+    .edit-button {
+      background-color: #007acc;
+    }
+    .delete-button {
+      background-color: #e63946;
+      margin-left: 5px;
+    }
+    .edit-button:hover {
+      background-color: #005fa3;
+    }
+    .delete-button:hover {
+      background-color: #d62839;
+    }
+  </style>
+</head>
+<body>
+  <h1>Video Speed Controller Options</h1>
+  <form id="settingsForm">
+    <div class="form-group">
+      <label for="domain">Domain (e.g., youtube.com):</label>
+      <input type="text" id="domain" placeholder="Enter domain" required>
+    </div>
+    <div class="form-group">
+      <label for="speed">Default Speed:</label>
+      <input type="number" id="speed" step="0.1" placeholder="Enter default speed (e.g., 2.5)" required>
+    </div>
+    <button type="submit">Save</button>
+  </form>
+
+  <h2>Saved Settings</h2>
+  <ul id="settingsList" class="domain-list"></ul>
+
+  <script src="options.js"></script>
+</body>
+</html>
