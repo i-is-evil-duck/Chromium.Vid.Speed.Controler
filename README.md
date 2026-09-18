@@ -2,7 +2,7 @@
 
 <img alt="Stargazers" src="https://img.shields.io/github/stars/i-is-evil-duck/Chromium.Vid.Speed.Controler?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41">
 
-A lightweight Manifest V3 browser extension for Chromium that controls HTML5 video playback speed — from a popup, with keyboard shortcuts, or with per-site profiles.
+A lightweight Manifest V3 browser extension for Firefox that controls HTML5 video playback speed — from a popup, with keyboard shortcuts, or with per-site profiles.
 
 ## Features
 
@@ -16,10 +16,15 @@ A lightweight Manifest V3 browser extension for Chromium that controls HTML5 vid
 
 ## Installation
 
-1. Download the repo as a ZIP and extract it, or `git clone` it.
-2. Open `chrome://extensions` (or `edge://extensions`).
-3. Enable **Developer mode** (top right).
-4. Click **Load unpacked** and select the folder containing `manifest.json`.
+### Temporarily (for development)
+
+1. Download the repo as a ZIP and extract it, or `git clone` it (use the `firefox` branch).
+2. Open `about:debugging#/runtime/this-firefox` in Firefox.
+3. Click **Load Temporary Add-on** and select the folder's `manifest.json`.
+
+### Permanently
+
+Package the extension as an `.xpi` (zip the contents of the repo and rename to `.xpi`), then drag it into Firefox, or publish it on [addons.mozilla.org](https://addons.mozilla.org).
 
 ## Usage
 
@@ -44,7 +49,7 @@ Speed resolution order: **tab override > site profile > global default**.
 | assignable   | Decrease speed by 0.25x    |
 | assignable   | Reset to the default speed |
 
-Chrome allows at most 4 predefined shortcuts. The extra commands can be assigned at `chrome://extensions/shortcuts`.
+Firefox allows up to 4 shortcuts with defaults. The extra commands can be assigned at `about:addons` -> Extensions -> gear icon -> **Manage Extension Shortcuts**.
 
 ## Configuration
 
@@ -56,4 +61,5 @@ From the popup header, open **Options** to:
 ## Notes
 
 - Works on any page with a `<video>` element.
-- Requires a Chromium-based browser (Chrome, Edge, Brave, Opera, etc.).
+- Requires Firefox 115 or later (Manifest V3).
+- The `main` branch is the Chromium version of this extension.
