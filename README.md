@@ -1,7 +1,6 @@
 # Speed Controller
 
-<img alt="Stargazers" src="https://img.shields.io/github/stars/i-is-evil-duck/Chromium.Vid.Speed.Controler?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41">
-[![Firefox Add-on](https://img.shields.io/amo/v/universal-vid-speed-controller?style=for-the-badge&logo=firefox&color=FF7139&label=Firefox%20Add-on%20)](https://addons.mozilla.org/en-GB/firefox/addon/universal-vid-speed-controller/)
+[![Stargazers](https://img.shields.io/github/stars/i-is-evil-duck/Chromium.Vid.Speed.Controler?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41)](https://github.com/i-is-evil-duck/Chromium.Vid.Speed.Controler) [![Firefox Add-on](https://img.shields.io/badge/Firefox%20Add--on-Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://addons.mozilla.org/en-GB/firefox/addon/universal-vid-speed-controller/)
 
 Control the playback speed of any HTML5 video — from a toolbar popup, keyboard shortcuts, or per-site profiles.
 
