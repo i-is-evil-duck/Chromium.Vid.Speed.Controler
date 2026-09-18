@@ -2,7 +2,9 @@
 
 <img alt="Stargazers" src="https://img.shields.io/github/stars/i-is-evil-duck/Chromium.Vid.Speed.Controler?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41">
 
-A lightweight Manifest V3 browser extension for Chromium that controls HTML5 video playback speed — from a popup, with keyboard shortcuts, or with per-site profiles.
+Control the playback speed of any HTML5 video — from a toolbar popup, keyboard shortcuts, or per-site profiles.
+
+> **Chromium edition.** The Firefox version is on the [`firefox`](https://github.com/i-is-evil-duck/Chromium.Vid.Speed.Controler/tree/firefox) branch and is listed on [Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/universal-vid-speed-controller/).
 
 ## Features
 
@@ -57,3 +59,4 @@ From the popup header, open **Options** to:
 
 - Works on any page with a `<video>` element.
 - Requires a Chromium-based browser (Chrome, Edge, Brave, Opera, etc.).
+- No telemetry or data collection; no permissions beyond `storage`.
