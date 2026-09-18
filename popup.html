@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Speed Controller</title>
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --panel: #262626;
+    --fg: #ffffff;
+    --muted: #bbbbbb;
+    --accent: #0b57d0;
+    --accent-hi: #3b82f6;
+    --border: #383838;
+    --danger: #e63946;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 320px;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 14px; font-weight: 600; }
+  .header a { color: var(--accent-hi); font-size: 12px; text-decoration: none; }
+  .body { padding: 14px 12px 12px; }
+  .unavailable { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
+
+  #controls .site-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .site { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
+  .source { font-size: 11px; color: var(--accent-hi); text-transform: capitalize; }
+
+  .rate-area { text-align: center; margin-bottom: 8px; }
+  .rate { font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent-hi); cursor: pointer; }
+
+  .row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .row button {
+    flex: 1;
+    padding: 8px 0;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .row button:hover { background: var(--accent-hi); }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .presets button {
+    padding: 7px 0;
+    background: #333;
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .presets button:hover { background: #3d3d3d; }
+
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--fg);
+  }
+  .remember input { accent-color: var(--accent-hi); cursor: pointer; }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .actions button {
+    flex: 1;
+    padding: 7px 0;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .actions button:hover:not(:disabled) { background: #2d2d2d; color: #fff; }
+  .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #speedControls.muted { opacity: 0.45; pointer-events: none; }
+
+  .off-note {
+    color: #e63946;
+    font-size: 12px;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  .switch-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .switch-row input { display: none; }
+  .switch-row .track {
+    width: 40px;
+    height: 22px;
+    background: #555;
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .switch-row .track .thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.15s;
+  }
+  .switch-row input:checked + .track { background: var(--accent-hi); }
+  .switch-row input:checked + .track .thumb { left: 20px; }
+  .switch-row .switch-label { color: var(--fg); }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Speed Controller</h1>
+    <a id="optionsLink" href="#">Options</a>
+  </div>
+  <div class="body">
+    <div id="unavailable" class="unavailable" hidden>Video controls aren't available on this page.</div>
+    <div id="controls" hidden>
+      <div class="site-row">
+        <span id="site" class="site"></span>
+        <span id="source" class="source"></span>
+      </div>
+      <div id="speedControls">
+        <div class="rate-area">
+          <div id="rate" class="rate">2.5x</div>
+          <input type="range" id="slider" min="0.25" max="8" step="0.05" value="2.5">
+        </div>
+        <div class="row">
+          <button id="down" type="button">&minus;0.25</button>
+          <button id="up" type="button">+0.25</button>
+        </div>
+        <div class="presets">
+          <button type="button" data-speed="1">1x</button>
+          <button type="button" data-speed="1.35">1.35x</button>
+          <button type="button" data-speed="1.5">1.5x</button>
+          <button type="button" data-speed="2">2x</button>
+          <button type="button" data-speed="2.5">2.5x</button>
+          <button type="button" data-speed="4">4x</button>
+        </div>
+        <label class="remember">
+          <input type="checkbox" id="remember">
+          <span id="rememberLabel">Remember for this site</span>
+        </label>
+        <div class="actions">
+          <button id="reset" type="button">Reset tab</button>
+        </div>
+      </div>
+      <div id="offNote" class="off-note" hidden>Extension is off — videos play at normal speed.</div>
+      <label class="switch-row">
+        <input type="checkbox" id="enabledToggle" checked>
+        <span class="track"><span class="thumb"></span></span>
+        <span class="switch-label">Extension enabled</span>
+      </label>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

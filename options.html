@@ -1,25 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Speed Controller</title>
+  <meta charset="utf-8">
+  <title>Speed Controller Options</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      max-width: 500px;
+      max-width: 520px;
       background-color: #1e1e1e;
       color: #ffffff;
     }
-    h1, h2 {
+    h1 {
       color: #ffffff;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      color: #ffffff;
+      font-size: 15px;
+      margin: 0 0 12px;
+    }
+    .card {
+      background-color: #262626;
+      border: 1px solid #333333;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 16px;
     }
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
     label {
       font-weight: bold;
       display: block;
       color: #cccccc;
+      font-size: 13px;
     }
     input[type="text"], input[type="number"] {
       width: calc(100% - 20px);
@@ -31,20 +47,37 @@
       color: #ffffff;
     }
     button {
-      padding: 8px 12px;
-      background-color: #007acc;
+      padding: 8px 14px;
+      background-color: #0b57d0;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       margin-top: 10px;
+      font-size: 13px;
     }
     button:hover {
-      background-color: #005fa3;
+      background-color: #184a99;
+    }
+    button.secondary {
+      background-color: #3d3d3d;
+    }
+    button.secondary:hover {
+      background-color: #4d4d4d;
+    }
+    .msg {
+      color: #4caf50;
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 16px;
+    }
+    .msg.error {
+      color: #e63946;
     }
     .domain-list {
       list-style-type: none;
       padding: 0;
+      margin-top: 8px;
     }
     .domain-item {
       display: flex;
@@ -55,46 +88,73 @@
       margin-bottom: 8px;
       border-radius: 4px;
     }
-    .edit-button, .delete-button {
-      background-color: #4caf50;
-      color: white;
-      padding: 5px 8px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9em;
+    .domain-item .info {
+      font-size: 13px;
+    }
+    .domain-item .info .speed {
+      color: #3b82f6;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+    .domain-item .actions {
+      display: flex;
+      gap: 6px;
+    }
+    .domain-item button {
+      margin-top: 0;
+      padding: 5px 10px;
+      font-size: 12px;
     }
     .edit-button {
-      background-color: #007acc;
+      background-color: #0b57d0;
+    }
+    .edit-button:hover {
+      background-color: #184a99;
     }
     .delete-button {
       background-color: #e63946;
-      margin-left: 5px;
-    }
-    .edit-button:hover {
-      background-color: #005fa3;
     }
     .delete-button:hover {
-      background-color: #d62839;
+      background-color: #c1121f;
+    }
+    .empty {
+      color: #888888;
+      font-size: 12px;
+      margin-top: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>Video Speed Controller Options</h1>
-  <form id="settingsForm">
-    <div class="form-group">
-      <label for="domain">Domain (e.g., youtube.com):</label>
-      <input type="text" id="domain" placeholder="Enter domain" required>
-    </div>
-    <div class="form-group">
-      <label for="speed">Default Speed:</label>
-      <input type="number" id="speed" step="0.1" placeholder="Enter default speed (e.g., 2.5)" required>
-    </div>
-    <button type="submit">Save</button>
-  </form>
+  <h1>Speed Controller Options</h1>
 
-  <h2>Saved Settings</h2>
-  <ul id="settingsList" class="domain-list"></ul>
+  <section class="card">
+    <h2>Global default speed</h2>
+    <div class="form-group">
+      <label for="defaultSpeed">Used on every site unless a site profile exists</label>
+      <input type="number" id="defaultSpeed" min="0.25" max="8" step="0.05" placeholder="e.g. 2.5">
+    </div>
+    <button id="saveDefault">Save global default</button>
+    <div id="defaultMsg" class="msg"></div>
+  </section>
+
+  <section class="card">
+    <h2>Per-site speeds</h2>
+    <form id="settingsForm">
+      <div class="form-group">
+        <label for="domain">Domain (e.g. youtube.com)</label>
+        <input type="text" id="domain" placeholder="Enter domain" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="speed">Speed (0.25 - 8)</label>
+        <input type="number" id="speed" min="0.25" max="8" step="0.05" placeholder="e.g. 2.5">
+      </div>
+      <button type="submit" id="saveBtn">Add</button>
+      <button type="button" id="cancelBtn" class="secondary" hidden>Cancel</button>
+      <div id="formMsg" class="msg"></div>
+    </form>
+    <ul id="settingsList" class="domain-list"></ul>
+    <div id="emptyList" class="empty">No per-site speeds configured.</div>
+  </section>
 
   <script src="options.js"></script>
 </body>

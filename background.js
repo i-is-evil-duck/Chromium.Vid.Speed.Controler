@@ -1,56 +1,244 @@
-chrome.commands.onCommand.addListener((command) => {
-    let speed;
-  
-    // Set speed based on the command
-    switch (command) {
-      case "set_speed_100":
-        speed = 1.0;
-        break;
-      case "set_speed_135":
-        speed = 1.35;
-        break;
-      case "set_speed_200":
-        speed = 2.0;
-        break;
-      case "set_speed_250":
-        speed = 2.5;
-        break;
+const DEFAULT_SPEED = 2.5;
+const MIN_SPEED = 0.25;
+const MAX_SPEED = 8;
+
+const round = (n) => Math.round(n * 100) / 100;
+const validSpeed = (s) =>
+  typeof s === "number" && Number.isFinite(s) && s >= MIN_SPEED && s <= MAX_SPEED;
+const clamp = (s) => Math.min(MAX_SPEED, Math.max(MIN_SPEED, s));
+const tabKey = (tabId) => `tabSpeed_${tabId}`;
+const hostCache = new Map();
+
+const isEnabled = async () => {
+  const data = await chrome.storage.sync.get("enabled");
+  return data.enabled !== false;
+};
+
+const getSettings = async () => {
+  const data = await chrome.storage.sync.get(["settings", "defaultSpeed"]);
+  return {
+    settings: data.settings || {},
+    defaultSpeed: validSpeed(data.defaultSpeed) ? data.defaultSpeed : DEFAULT_SPEED
+  };
+};
+
+const getHostname = async (tabId) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab || !tab.url) return null;
+    let host;
+    try {
+      host = new URL(tab.url).hostname;
+    } catch {
+      return null;
     }
-  
-    if (speed !== undefined) {
-      // Get the active tab and apply speed specifically to it
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tabId = tabs[0]?.id; // Use optional chaining to avoid issues if tabs[0] is undefined
-  
-        if (tabId) {
-          // Store the speed specifically for the tab
-          chrome.storage.local.set({ [`tabSpeed_${tabId}`]: speed }, () => {
-            // Send a message to content.js to apply the speed change to the video
-            chrome.tabs.sendMessage(tabId, { action: "set_speed", speed: speed }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.warn("Could not send message to content script. Tab may be closed.");
-              }
-            });
-          });
+    if (host.startsWith("www.")) host = host.slice(4);
+    return host || null;
+  } catch {
+    return null;
+  }
+};
+
+const setHostname = (tabId, hostname) => {
+  if (hostname) hostCache.set(tabId, hostname);
+};
+
+const getTabHostname = async (tabId, provided) => {
+  if (provided) {
+    setHostname(tabId, provided);
+    return provided;
+  }
+  const cached = hostCache.get(tabId);
+  if (cached) return cached;
+  const host = await getHostname(tabId);
+  if (host) hostCache.set(tabId, host);
+  return host;
+};
+
+const resolveSpeed = async (tabId) => {
+  if (tabId == null) return DEFAULT_SPEED;
+  const local = await chrome.storage.local.get(tabKey(tabId));
+  const override = local[tabKey(tabId)];
+  if (validSpeed(override)) return override;
+  const { settings, defaultSpeed } = await getSettings();
+  const host = await getTabHostname(tabId);
+  if (host && validSpeed(settings[host])) return settings[host];
+  return defaultSpeed;
+};
+
+const setOverride = (tabId, speed) =>
+  chrome.storage.local.set({ [tabKey(tabId)]: clamp(speed) });
+
+const clearOverride = (tabId) => chrome.storage.local.remove(tabKey(tabId));
+
+const applyToTab = (tabId) => {
+  chrome.tabs.sendMessage(tabId, { action: "apply_speed" }).catch(() => {});
+};
+
+const updateBadge = async (tabId) => {
+  try {
+    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!active || active.id !== tabId) return;
+    if (!(await isEnabled())) {
+      await chrome.action.setBadgeText({ tabId, text: "" });
+      return;
+    }
+    const speed = await resolveSpeed(tabId);
+    const label = String(parseFloat(speed.toFixed(2)));
+    await chrome.action.setBadgeText({ tabId, text: label });
+    await chrome.action.setBadgeBackgroundColor({ tabId, color: "#0b57d0" });
+  } catch {}
+};
+
+const handleMessage = async (message, sender) => {
+  switch (message.action) {
+    case "get_speed": {
+      const tabId = sender.tab && sender.tab.id;
+      if (tabId == null) return { ok: false };
+      setHostname(tabId, message.hostname);
+      const speed = await resolveSpeed(tabId);
+      updateBadge(tabId).catch(() => {});
+      return { ok: true, speed, enabled: await isEnabled() };
+    }
+
+    case "get_popup_data": {
+      const tabId = message.tabId;
+      if (tabId == null) return { ok: false };
+      const host = await getTabHostname(tabId, message.hostname);
+      const { settings, defaultSpeed } = await getSettings();
+      const siteSpeed = host && validSpeed(settings[host]) ? settings[host] : null;
+      const local = await chrome.storage.local.get(tabKey(tabId));
+      const override = validSpeed(local[tabKey(tabId)]);
+      const speed = await resolveSpeed(tabId);
+      return {
+        ok: host != null,
+        hostname: host,
+        siteSaved: siteSpeed != null,
+        siteSpeed,
+        globalDefault: defaultSpeed,
+        override,
+        speed,
+        enabled: await isEnabled()
+      };
+    }
+
+    case "set_speed": {
+      const { tabId, speed, scope } = message;
+      if (tabId == null || !validSpeed(speed)) return { ok: false };
+      if (scope === "global") {
+        await chrome.storage.sync.set({ defaultSpeed: speed });
+      } else if (scope === "site") {
+        const host = await getTabHostname(tabId, message.hostname);
+        if (!host) return { ok: false };
+        const { settings } = await getSettings();
+        settings[host] = speed;
+        await chrome.storage.sync.set({ settings });
+        await clearOverride(tabId);
+      } else {
+        await setOverride(tabId, speed);
+      }
+      applyToTab(tabId);
+      updateBadge(tabId).catch(() => {});
+      return { ok: true };
+    }
+
+    case "clear_tab": {
+      const tabId = message.tabId;
+      if (tabId == null) return { ok: false };
+      await clearOverride(tabId);
+      applyToTab(tabId);
+      updateBadge(tabId).catch(() => {});
+      return { ok: true, speed: await resolveSpeed(tabId) };
+    }
+
+    case "toggle_site": {
+      const { tabId, enabled, speed } = message;
+      if (tabId == null || !validSpeed(speed)) return { ok: false };
+      const host = await getTabHostname(tabId, message.hostname);
+      if (!host) return { ok: false };
+      const { settings } = await getSettings();
+      if (enabled) settings[host] = speed;
+      else delete settings[host];
+      await chrome.storage.sync.set({ settings });
+      await clearOverride(tabId);
+      applyToTab(tabId);
+      updateBadge(tabId).catch(() => {});
+      return { ok: true, siteSaved: enabled };
+    }
+
+    case "toggle_enabled": {
+      const enabled = message.enabled === true;
+      await chrome.storage.sync.set({ enabled });
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (tab && tab.id != null) {
+          applyToTab(tab.id);
+          updateBadge(tab.id).catch(() => {});
         }
       });
+      return { ok: true, enabled };
     }
-  });
-  
-  // Listen for requests from content scripts to get or set the speed
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "get_speed") {
-      const tabId = sender.tab?.id;
-  
-      if (tabId) {
-        // Return the stored speed for this tab
-        chrome.storage.local.get([`tabSpeed_${tabId}`], (data) => {
-          sendResponse({ speed: data[`tabSpeed_${tabId}`] || 2.5 }); // Default speed is 2.5 if not set
-        });
-  
-        // Ensure the response is sent asynchronously
-        return true;
-      }
-    }
-  });
-  
+
+    default:
+      return { ok: false };
+  }
+};
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleMessage(message, sender)
+    .then(sendResponse)
+    .catch((error) => sendResponse({ ok: false, error: String(error) }));
+  return true;
+});
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (!(await isEnabled())) return;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || tab.id == null) return;
+  const current = await resolveSpeed(tab.id);
+  let target;
+  switch (command) {
+    case "set_speed_100":
+      target = 1;
+      break;
+    case "set_speed_135":
+      target = 1.35;
+      break;
+    case "set_speed_200":
+      target = 2;
+      break;
+    case "set_speed_250":
+      target = 2.5;
+      break;
+    case "speed_up":
+      target = clamp(round(current + 0.25));
+      break;
+    case "speed_down":
+      target = clamp(round(current - 0.25));
+      break;
+    case "reset_speed":
+      await clearOverride(tab.id);
+      applyToTab(tab.id);
+      updateBadge(tab.id).catch(() => {});
+      return;
+    default:
+      return;
+  }
+  await setOverride(tab.id, target);
+  applyToTab(tab.id);
+  updateBadge(tab.id).catch(() => {});
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  hostCache.delete(tabId);
+  clearOverride(tabId);
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => updateBadge(tabId).catch(() => {}));
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && (changes.settings || changes.defaultSpeed || changes.enabled)) {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (tab && tab.id != null) updateBadge(tab.id).catch(() => {});
+    });
+  }
+});

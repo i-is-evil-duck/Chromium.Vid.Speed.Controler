@@ -1,43 +1,107 @@
-const DEFAULT_SPEED = 2.5;  // Default speed for the site
+const MIN_SPEED = 0.25;
+const MAX_SPEED = 8;
 
-const applySpeed = (speed) => {
-  const videos = document.querySelectorAll("video");
-  videos.forEach(video => {
-    video.playbackRate = speed;
-  });
-};
+const clamp = (s) => Math.min(MAX_SPEED, Math.max(MIN_SPEED, s));
+const clampToBrowser = (s) => Math.min(16, Math.max(0.0625, s));
 
-// Flag to indicate whether the page is about to be unloaded
-let isUnloading = false;
+let applyTimer = null;
 
-// Function to handle applying the appropriate speed to the current tab
-const setVideoSpeed = () => {
-  // Avoid sending a message if the tab is about to unload
-  if (isUnloading) {
-    return;
-  }
+const hasVideo = () => !!document.querySelector("video");
 
-  // Send a message to background.js to get the current speed for this tab
-  chrome.runtime.sendMessage({ action: "get_speed" }, (response) => {
-    if (response && response.speed !== undefined) {
-      const speed = response.speed || DEFAULT_SPEED;
-      applySpeed(speed);
-    } else {
-      console.warn("Failed to retrieve speed, using default.");
-      applySpeed(DEFAULT_SPEED);
+const applyRate = (rate) => {
+  rate = clamp(rate);
+  const next = clampToBrowser(rate);
+  document.querySelectorAll("video").forEach((video) => {
+    if (Math.abs(video.playbackRate - next) > 0.001) {
+      video.playbackRate = next;
     }
   });
 };
 
-// Apply speed when page is loaded or DOM is mutated
-setVideoSpeed();
+const fetchAndApply = () => {
+  if (!hasVideo()) return;
+  const hostname = location.hostname.replace(/^www\./, "");
+  chrome.runtime.sendMessage({ action: "get_speed", hostname }, (response) => {
+    if (!response || !response.ok) return;
+    if (response.enabled === false) {
+      applyRate(1);
+      return;
+    }
+    if (response.speed) applyRate(response.speed);
+  });
+};
 
-// Monitor for changes to the page (e.g., dynamically loaded videos)
-const observer = new MutationObserver(setVideoSpeed);
-observer.observe(document.body, { childList: true, subtree: true });
+const scheduleApply = () => {
+  clearTimeout(applyTimer);
+  applyTimer = setTimeout(fetchAndApply, 250);
+};
 
-// Clean up when the page is about to be unloaded
-window.addEventListener('beforeunload', () => {
-  isUnloading = true; // Flag indicating that the page is unloading
-  observer.disconnect(); // Stop observing mutations
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "apply_speed") {
+    fetchAndApply();
+    if (sendResponse) sendResponse({ ok: true });
+  } else if (message.action === "info") {
+    const video = document.querySelector("video");
+    if (sendResponse) {
+      sendResponse({
+        hostname: location.hostname.replace(/^www\./, ""),
+        hasVideo: !!video,
+        rate: video ? video.playbackRate : null
+      });
+    }
+  }
+  return false;
 });
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && (changes.settings || changes.defaultSpeed || changes.enabled)) {
+    scheduleApply();
+  }
+});
+
+const start = () => {
+  if (!document.body) {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+    return;
+  }
+  fetchAndApply();
+
+  const domObserver = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        if (node.matches && (node.matches("video") || node.querySelector("video"))) {
+          scheduleApply();
+          return;
+        }
+      }
+    }
+  });
+  domObserver.observe(document.body, { childList: true, subtree: true });
+
+  const attrObserver = new MutationObserver((records) => {
+    for (const record of records) {
+      if (
+        record.type === "attributes" &&
+        record.target.matches &&
+        record.target.matches("video")
+      ) {
+        scheduleApply();
+        return;
+      }
+    }
+  });
+  attrObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["src"] });
+
+  window.addEventListener("beforeunload", () => {
+    domObserver.disconnect();
+    attrObserver.disconnect();
+    clearTimeout(applyTimer);
+  });
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", start, { once: true });
+} else {
+  start();
+}
