@@ -1,3 +1,5 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+
 const DEFAULT_SPEED = 2.5;
 const MIN_SPEED = 0.25;
 const MAX_SPEED = 8;
@@ -10,12 +12,12 @@ const tabKey = (tabId) => `tabSpeed_${tabId}`;
 const hostCache = new Map();
 
 const isEnabled = async () => {
-  const data = await chrome.storage.sync.get("enabled");
+  const data = await api.storage.sync.get("enabled");
   return data.enabled !== false;
 };
 
 const getSettings = async () => {
-  const data = await chrome.storage.sync.get(["settings", "defaultSpeed"]);
+  const data = await api.storage.sync.get(["settings", "defaultSpeed"]);
   return {
     settings: data.settings || {},
     defaultSpeed: validSpeed(data.defaultSpeed) ? data.defaultSpeed : DEFAULT_SPEED
@@ -24,7 +26,7 @@ const getSettings = async () => {
 
 const getHostname = async (tabId) => {
   try {
-    const tab = await chrome.tabs.get(tabId);
+    const tab = await api.tabs.get(tabId);
     if (!tab || !tab.url) return null;
     let host;
     try {
@@ -57,7 +59,7 @@ const getTabHostname = async (tabId, provided) => {
 
 const resolveSpeed = async (tabId) => {
   if (tabId == null) return DEFAULT_SPEED;
-  const local = await chrome.storage.local.get(tabKey(tabId));
+  const local = await api.storage.local.get(tabKey(tabId));
   const override = local[tabKey(tabId)];
   if (validSpeed(override)) return override;
   const { settings, defaultSpeed } = await getSettings();
@@ -67,26 +69,26 @@ const resolveSpeed = async (tabId) => {
 };
 
 const setOverride = (tabId, speed) =>
-  chrome.storage.local.set({ [tabKey(tabId)]: clamp(speed) });
+  api.storage.local.set({ [tabKey(tabId)]: clamp(speed) });
 
-const clearOverride = (tabId) => chrome.storage.local.remove(tabKey(tabId));
+const clearOverride = (tabId) => api.storage.local.remove(tabKey(tabId));
 
 const applyToTab = (tabId) => {
-  chrome.tabs.sendMessage(tabId, { action: "apply_speed" }).catch(() => {});
+  api.tabs.sendMessage(tabId, { action: "apply_speed" }).catch(() => {});
 };
 
 const updateBadge = async (tabId) => {
   try {
-    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [active] = await api.tabs.query({ active: true, currentWindow: true });
     if (!active || active.id !== tabId) return;
     if (!(await isEnabled())) {
-      await chrome.action.setBadgeText({ tabId, text: "" });
+      await api.action.setBadgeText({ tabId, text: "" });
       return;
     }
     const speed = await resolveSpeed(tabId);
     const label = String(parseFloat(speed.toFixed(2)));
-    await chrome.action.setBadgeText({ tabId, text: label });
-    await chrome.action.setBadgeBackgroundColor({ tabId, color: "#0b57d0" });
+    await api.action.setBadgeText({ tabId, text: label });
+    await api.action.setBadgeBackgroundColor({ tabId, color: "#0b57d0" });
   } catch {}
 };
 
@@ -107,7 +109,7 @@ const handleMessage = async (message, sender) => {
       const host = await getTabHostname(tabId, message.hostname);
       const { settings, defaultSpeed } = await getSettings();
       const siteSpeed = host && validSpeed(settings[host]) ? settings[host] : null;
-      const local = await chrome.storage.local.get(tabKey(tabId));
+      const local = await api.storage.local.get(tabKey(tabId));
       const override = validSpeed(local[tabKey(tabId)]);
       const speed = await resolveSpeed(tabId);
       return {
@@ -126,13 +128,13 @@ const handleMessage = async (message, sender) => {
       const { tabId, speed, scope } = message;
       if (tabId == null || !validSpeed(speed)) return { ok: false };
       if (scope === "global") {
-        await chrome.storage.sync.set({ defaultSpeed: speed });
+        await api.storage.sync.set({ defaultSpeed: speed });
       } else if (scope === "site") {
         const host = await getTabHostname(tabId, message.hostname);
         if (!host) return { ok: false };
         const { settings } = await getSettings();
         settings[host] = speed;
-        await chrome.storage.sync.set({ settings });
+        await api.storage.sync.set({ settings });
         await clearOverride(tabId);
       } else {
         await setOverride(tabId, speed);
@@ -159,7 +161,7 @@ const handleMessage = async (message, sender) => {
       const { settings } = await getSettings();
       if (enabled) settings[host] = speed;
       else delete settings[host];
-      await chrome.storage.sync.set({ settings });
+      await api.storage.sync.set({ settings });
       await clearOverride(tabId);
       applyToTab(tabId);
       updateBadge(tabId).catch(() => {});
@@ -168,13 +170,12 @@ const handleMessage = async (message, sender) => {
 
     case "toggle_enabled": {
       const enabled = message.enabled === true;
-      await chrome.storage.sync.set({ enabled });
-      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-        if (tab && tab.id != null) {
-          applyToTab(tab.id);
-          updateBadge(tab.id).catch(() => {});
-        }
-      });
+      await api.storage.sync.set({ enabled });
+      const [tab] = await api.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id != null) {
+        applyToTab(tab.id);
+        updateBadge(tab.id).catch(() => {});
+      }
       return { ok: true, enabled };
     }
 
@@ -183,16 +184,19 @@ const handleMessage = async (message, sender) => {
   }
 };
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  handleMessage(message, sender)
-    .then(sendResponse)
-    .catch((error) => sendResponse({ ok: false, error: String(error) }));
-  return true;
-});
+const handleListener = async (message, sender) => {
+  try {
+    return await handleMessage(message, sender);
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+};
 
-chrome.commands.onCommand.addListener(async (command) => {
+api.runtime.onMessage.addListener(handleListener);
+
+api.commands.onCommand.addListener(async (command) => {
   if (!(await isEnabled())) return;
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await api.tabs.query({ active: true, currentWindow: true });
   if (!tab || tab.id == null) return;
   const current = await resolveSpeed(tab.id);
   let target;
@@ -228,17 +232,16 @@ chrome.commands.onCommand.addListener(async (command) => {
   updateBadge(tab.id).catch(() => {});
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
+api.tabs.onRemoved.addListener((tabId) => {
   hostCache.delete(tabId);
   clearOverride(tabId);
 });
 
-chrome.tabs.onActivated.addListener(({ tabId }) => updateBadge(tabId).catch(() => {}));
+api.tabs.onActivated.addListener(({ tabId }) => updateBadge(tabId).catch(() => {}));
 
-chrome.storage.onChanged.addListener((changes, area) => {
+api.storage.onChanged.addListener(async (changes, area) => {
   if (area === "sync" && (changes.settings || changes.defaultSpeed || changes.enabled)) {
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (tab && tab.id != null) updateBadge(tab.id).catch(() => {});
-    });
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.id != null) updateBadge(tab.id).catch(() => {});
   }
 });

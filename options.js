@@ -66,7 +66,7 @@ const renderList = (settings) => {
     deleteButton.addEventListener("click", () => {
       const next = { ...settings };
       delete next[domain];
-      chrome.storage.sync.set({ settings: next }, () => {
+      api.storage.sync.set({ settings: next }, () => {
         if (editingDomain === domain) {
           editingDomain = null;
           $("saveBtn").textContent = "Add";
@@ -88,7 +88,7 @@ const renderList = (settings) => {
 };
 
 const loadSettings = () => {
-  chrome.storage.sync.get(["settings", "defaultSpeed"], (data) => {
+  api.storage.sync.get(["settings", "defaultSpeed"], (data) => {
     $("defaultSpeed").value = data.defaultSpeed ?? 2.5;
     renderList(data.settings || {});
   });
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
       flash("defaultMsg", `Enter a speed between ${MIN_SPEED} and ${MAX_SPEED}.`, true);
       return;
     }
-    chrome.storage.sync.set({ defaultSpeed: speed }, () => {
+    api.storage.sync.set({ defaultSpeed: speed }, () => {
       flash("defaultMsg", "Global default saved and applied to open pages.");
     });
   });
@@ -130,11 +130,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    chrome.storage.sync.get("settings", (data) => {
+    api.storage.sync.get("settings", (data) => {
       const settings = data.settings || {};
       if (editingDomain && editingDomain !== domain) delete settings[editingDomain];
       settings[domain] = speed;
-      chrome.storage.sync.set({ settings }, () => {
+      api.storage.sync.set({ settings }, () => {
         editingDomain = null;
         $("saveBtn").textContent = "Add";
         $("cancelBtn").hidden = true;

@@ -1,3 +1,5 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+
 const MIN_SPEED = 0.25;
 const MAX_SPEED = 8;
 
@@ -21,7 +23,7 @@ const applyRate = (rate) => {
 const fetchAndApply = () => {
   if (!hasVideo()) return;
   const hostname = location.hostname.replace(/^www\./, "");
-  chrome.runtime.sendMessage({ action: "get_speed", hostname }, (response) => {
+  api.runtime.sendMessage({ action: "get_speed", hostname }, (response) => {
     if (!response || !response.ok) return;
     if (response.enabled === false) {
       applyRate(1);
@@ -36,7 +38,7 @@ const scheduleApply = () => {
   applyTimer = setTimeout(fetchAndApply, 250);
 };
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "apply_speed") {
     fetchAndApply();
     if (sendResponse) sendResponse({ ok: true });
@@ -53,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-chrome.storage.onChanged.addListener((changes, area) => {
+api.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && (changes.settings || changes.defaultSpeed || changes.enabled)) {
     scheduleApply();
   }

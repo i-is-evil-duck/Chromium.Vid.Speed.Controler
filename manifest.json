@@ -5,7 +5,7 @@
   "description": "Control video playback speed with hotkeys, per-site profiles, and a quick popup.",
   "permissions": ["storage"],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
@@ -18,6 +18,12 @@
     "default_title": "Speed Controller - adjust playback speed"
   },
   "options_page": "options.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "speed-controller@ducky.dev",
+      "strict_min_version": "115.0"
+    }
+  },
   "commands": {
     "set_speed_100": {
       "suggested_key": {

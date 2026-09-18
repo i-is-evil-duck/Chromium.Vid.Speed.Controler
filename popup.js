@@ -1,3 +1,5 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+
 const $ = (id) => document.getElementById(id);
 
 const MIN_SPEED = 0.25;
@@ -42,7 +44,7 @@ const showUnavailable = () => {
 };
 
 const send = (message) =>
-  chrome.runtime.sendMessage(message).catch(() => ({ ok: false }));
+  api.runtime.sendMessage(message).catch(() => ({ ok: false }));
 
 const sendSpeed = async (speed, scope) => {
   const res = await send({
@@ -74,7 +76,7 @@ const refresh = async () => {
 };
 
 const init = async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await api.tabs.query({ active: true, currentWindow: true });
   if (!tab || tab.id == null) {
     showUnavailable();
     return;
@@ -82,7 +84,7 @@ const init = async () => {
   state.tabId = tab.id;
   let hostFromPage = null;
   try {
-    const info = await chrome.tabs.sendMessage(tab.id, { action: "info" });
+    const info = await api.tabs.sendMessage(tab.id, { action: "info" });
     hostFromPage = info && info.hostname ? info.hostname : null;
   } catch {}
   const res = await send({
@@ -152,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("optionsLink").addEventListener("click", (event) => {
     event.preventDefault();
-    if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+    if (api.runtime.openOptionsPage) api.runtime.openOptionsPage();
     else window.close();
   });
 
