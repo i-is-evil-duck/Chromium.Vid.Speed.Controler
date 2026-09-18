@@ -61,5 +61,5 @@ From the popup header, open **Options** to:
 ## Notes
 
 - Works on any page with a `<video>` element.
-- Requires Firefox 115 or later (Manifest V3).
+- Requires Firefox 140 or later (Manifest V3).
 - The `main` branch is the Chromium version of this extension.
