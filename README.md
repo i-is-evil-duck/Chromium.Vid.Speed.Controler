@@ -1,8 +1,11 @@
 # Speed Controller
 
 <img alt="Stargazers" src="https://img.shields.io/github/stars/i-is-evil-duck/Chromium.Vid.Speed.Controler?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41">
+[![Firefox Add-on](https://img.shields.io/amo/v/universal-vid-speed-controller?style=for-the-badge&logo=firefox&color=FF7139&label=Firefox%20Add-on%20)](https://addons.mozilla.org/en-GB/firefox/addon/universal-vid-speed-controller/)
 
-A lightweight Manifest V3 browser extension for Firefox that controls HTML5 video playback speed — from a popup, with keyboard shortcuts, or with per-site profiles.
+Control the playback speed of any HTML5 video — from a toolbar popup, keyboard shortcuts, or per-site profiles.
+
+> **Firefox edition.** The Chromium version (Chrome, Edge, Brave) lives on the [`main`](https://github.com/i-is-evil-duck/Chromium.Vid.Speed.Controler/tree/main) branch.
 
 ## Features
 
@@ -14,17 +17,13 @@ A lightweight Manifest V3 browser extension for Firefox that controls HTML5 vide
 - **Toolbar badge** — shows the current tab's speed on the extension icon
 - **Live updates** — changes apply to already-open pages without a reload
 
-## Installation
+## Install
 
-### Temporarily (for development)
-
-1. Download the repo as a ZIP and extract it, or `git clone` it (use the `firefox` branch).
-2. Open `about:debugging#/runtime/this-firefox` in Firefox.
-3. Click **Load Temporary Add-on** and select the folder's `manifest.json`.
-
-### Permanently
-
-Package the extension as an `.xpi` (zip the contents of the repo and rename to `.xpi`), then drag it into Firefox, or publish it on [addons.mozilla.org](https://addons.mozilla.org).
+- **Firefox Add-ons** — [universal-vid-speed-controller](https://addons.mozilla.org/en-GB/firefox/addon/universal-vid-speed-controller/) (bypasses the temporary-load restrictions).
+- **From source (development)**:
+  1. Clone or download the `firefox` branch and extract it.
+  2. Open `about:debugging#/runtime/this-firefox`.
+  3. Click **Load Temporary Add-on** and select the folder's `manifest.json`.
 
 ## Usage
 
@@ -61,5 +60,5 @@ From the popup header, open **Options** to:
 ## Notes
 
 - Works on any page with a `<video>` element.
-- Requires Firefox 140 or later (Manifest V3).
-- The `main` branch is the Chromium version of this extension.
+- Requires Firefox 140 or later.
+- No telemetry or data collection; no permissions beyond `storage`.
