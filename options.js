@@ -1,3 +1,5 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+
 const $ = (id) => document.getElementById(id);
 
 const MIN_SPEED = 0.25;

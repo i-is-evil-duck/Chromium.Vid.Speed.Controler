@@ -23,14 +23,17 @@ const applyRate = (rate) => {
 const fetchAndApply = () => {
   if (!hasVideo()) return;
   const hostname = location.hostname.replace(/^www\./, "");
-  api.runtime.sendMessage({ action: "get_speed", hostname }, (response) => {
-    if (!response || !response.ok) return;
-    if (response.enabled === false) {
-      applyRate(1);
-      return;
-    }
-    if (response.speed) applyRate(response.speed);
-  });
+  api.runtime
+    .sendMessage({ action: "get_speed", hostname })
+    .then((response) => {
+      if (!response || !response.ok) return;
+      if (response.enabled === false) {
+        applyRate(1);
+        return;
+      }
+      if (response.speed) applyRate(response.speed);
+    })
+    .catch(() => {});
 };
 
 const scheduleApply = () => {
@@ -52,7 +55,7 @@ api.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     }
   }
-  return false;
+  return true;
 });
 
 api.storage.onChanged.addListener((changes, area) => {
